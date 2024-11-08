@@ -1,16 +1,19 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
-import { addTransactionalDataSource } from 'typeorm-transactional';
+import { addTransactionalDataSource, getDataSourceByName } from 'typeorm-transactional';
 import { DataSource } from 'typeorm';
+import { PostModule } from './post/post.module';
+import { CommentModule } from './comment/comment.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
+      imports: undefined,
       useFactory() {
         return {
-          type: 'mysql',
+          type: 'postgres',
           host: process.env.DB_HOST,
           port: parseInt(process.env.DB_PORT),
           username: process.env.DB_USERNAME,
@@ -18,6 +21,7 @@ import { DataSource } from 'typeorm';
           database: process.env.DB_DATABASE,
           synchronize: process.env.DB_SYNC === 'true',
           timezone: 'Z',
+          entities: [__dirname + '/**/*.entity{.ts,.js}']
         };
       },
       async dataSourceFactory(options) {
@@ -25,9 +29,11 @@ import { DataSource } from 'typeorm';
           throw new Error('Invalid options passed');
         }
 
-        return addTransactionalDataSource(new DataSource(options));
-      },
+        return getDataSourceByName("default") || addTransactionalDataSource(new DataSource(options));
+      }
     }),
+    PostModule,
+    CommentModule,
   ],
   controllers: [],
   providers: [],
